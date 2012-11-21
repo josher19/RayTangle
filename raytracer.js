@@ -169,8 +169,9 @@ var RayTracer = (function () {
     RayTracer.prototype.intersections = function (ray, scene) {
         var closest = +Infinity;
         var closestInter = undefined;
-        for(var i in scene.things) {
-            var inter = scene.things[i].intersect(ray);
+        //for(var i in scene.things) {
+        for(var i=0, len=scene.things.length; i<len; ++i) {
+            var inter = scene.things[i].intersect && scene.things[i].intersect(ray);
             if(inter != null && inter.dist < closest) {
                 closestInter = inter;
                 closest = inter.dist;
@@ -292,9 +293,13 @@ function exec(scene) {
     var rayTracer = new RayTracer();
     var scene = scene || defaultScene();
     rayTracer.render(scene, ctx, 256, 256);
-    scene.show = scene.show || function() { setTimeout(function() {rayTracer.render(scene, ctx, 256, 256) }}, 0); }
+    scene.show = scene.show || function() { rayTracer.render(this, ctx, 256, 256) } // { setTimeout(function() {rayTracer.render(scene, ctx, 256, 256) }, 0); }
     return scene;
 }
+
+if (typeof addListener == "undefined") addListener = addEventListener;
+addListener("load", log);
+
 var scene = exec();
 
 function cloner(obj) { 
@@ -313,10 +318,19 @@ function removeCanvas(nth) {
     return document.body.removeChild($$('canvas')[nth||0])
 }
 
-function reshow() { if (reshow.timer) clearTimeout(reshow.timer); reshow.timer = setTimeout(function() { scene.show() }, 50) }
+function delayThrottle(fcn, ms) { if(null==ms) ms=300; if (delayThrottle.timer) clearTimeout(delayThrottle.timer); delayThrottle.timer = setTimeout(fcn, ms); }
+
+// function reshow() { if (reshow.timer) clearTimeout(reshow.timer); reshow.timer = setTimeout(function() { scene.show() }, 50) }
+function reshow(ms) { delayThrottle(function() { scene.show() }, ms==null?50:ms) }
 
 function killtimeout() { var tid = setTimeout('1', 10); clearTimeout(tid-1); clearTimeout(tid+1); return tid;}
 
 function nextScene(i,last) { scene.camera = new Camera(new Vector(i, 2, 4), new Vector(-1, 0.25, 0)); setTimeout(function() { scene.show(); if (++i < (last || 10)) nextScene(i,last); }, 0) }
 
+function nextSceneT(i,last, tstart) { if (null==tstart) tstart=new Date(); scene.camera = new Camera(new Vector(i, 2, 4), new Vector(-1, 0.25, 0)); setTimeout(function() { scene.show(); if (++i < (last || 10)) nextSceneT(i,last,tstart); else { log((new Date() - tstart)/1000) } }, 0) }
+
 scene.next = function (i,last) { var s = this; s.camera = new Camera(new Vector(i, 2, 4), new Vector(-1, 0.25, 0)); setTimeout(function() { s.show(); if (++i < (last || 10)) s.next(i,last); }, 10) }
+
+readScene = function() { var text, oshow = scene.show || oscene.show; try { text = tangle.element.textContent.replace(/(\d)drag/g, "$1"); eval(text); log(text.length); scene = defaultScene(); scene.show = oshow; reshow(); } catch(e) { log(text); log(e) } }
+
+function updateUI(ms) { delayThrottle(readScene, ms || 1200) }
