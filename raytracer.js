@@ -51,10 +51,10 @@ var Color = (function () {
     Color.black = new Color(0, 0, 0);
     Color.background = Color.black;
     Color.defaultColor = Color.black;
-    Color.toDrawingColor = function toDrawingColor(c) {
-        var legalize = function (d) {
+    var legalize = function (d) {
             return d > 1 ? 1 : d;
-        };
+    };
+    Color.toDrawingColor = function toDrawingColor(c) {
         return {
             r: Math.floor(legalize(c.r) * 255),
             g: Math.floor(legalize(c.g) * 255),
@@ -233,6 +233,25 @@ var RayTracer = (function () {
         return scene.lights.reduce(addLight, Color.defaultColor);
     };
     RayTracer.prototype.render = function (scene, ctx, screenWidth, screenHeight) {
+        var getPoint = function (x, y, camera) {
+            var recenterX = (x - (screenWidth / 2)) / 2 / screenWidth;            
+            var recenterY = -(y - (screenHeight / 2)) / 2 / screenHeight;
+            return Vector.norm(Vector.plus(camera.forward, Vector.plus(Vector.times(recenterX, camera.right), Vector.times(recenterY, camera.up))));
+        };
+        for(var y = 0; y < screenHeight; y++) {
+            for(var x = 0; x < screenWidth; x++) {
+                var color = this.traceRay({
+                    start: scene.camera.pos,
+                    dir: getPoint(x, y, scene.camera)
+                }, scene, 0);
+                var c = Color.toDrawingColor(color);
+                ctx.fillStyle = "rgb(" + (c.r) + ", " + (c.g) + ", " + (c.b) + ")";
+                ctx.fillRect(x, y, x + 1, y + 1);
+            }
+        }
+    }
+    
+    RayTracer.prototype.slowrender = function (scene, ctx, screenWidth, screenHeight) {
         var getPoint = function (x, y, camera) {
             var recenterX = function (x) {
                 return (x - (screenWidth / 2)) / 2 / screenWidth;
