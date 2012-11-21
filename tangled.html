@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <base href="http://worrydream.com/Tangle/" target="_top" />
+    <title>Tangle: Getting Started</title>
+
+    <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="Fonts/Insolent/stylesheet.css" type="text/css">
+    <link rel="stylesheet" href="Fonts/BorisBlackBloxx/stylesheet.css" type="text/css">
+    <link rel="stylesheet" href="style.css" type="text/css">
+
+    <!-- Tangle -->
+    <script type="text/javascript" src="Tangle.js"></script>
+
+    <!-- TangleKit -->
+    <link rel="stylesheet" href="TangleKit/TangleKit.css" type="text/css">
+    <script type="text/javascript" src="TangleKit/mootools.js"></script>
+    <script type="text/javascript" src="TangleKit/sprintf.js"></script>
+    <script type="text/javascript" src="TangleKit/BVTouchable.js"></script>
+    <script type="text/javascript" src="TangleKit/TangleKit.js"></script>
+
+    <!-- examples -->
+    <script type="text/javascript" xsrc="Examples/CookieExample.js"></script>
+
+</head>
+<body>
+
+<p id="calorieCalculator">
+  When you eat <span class="TKAdjustableNumber" data-var="cookies"> cookies</span>,
+  you consume <b data-var="calories"> calories</b>. That's 
+  <span data-var="dailyPercent" data-format="%0.2f">%</span> of your recommended daily calories.
+</p>
+
+<hr noshade />
+
+<h1>Tangled</h1>
+<p>Can it be untangled?</p>
+
+<div class="compiler-output">
+
+
+<pre class="prettyprint">
+function defaultScene() {
+    return {
+        things: [
+            new Plane(new Vector(0, 1, 0), 0, Surfaces.checkerboard), 
+            new Sphere(new Vector(0, 1, -0.25), 1, Surfaces.shiny), 
+            new Sphere(new Vector(-1, 0.5, 1.5), 0.5, Surfaces.shiny)
+        ],
+        lights: [
+            {
+                pos: new Vector(-2, 2.5, 0),
+                color: new Color(0.49, 0.07, 0.07)
+            }, 
+            {
+                pos: new Vector(1.5, 2.5, 1.5),
+                color: new Color(0.07, 0.07, 0.49)
+            }, 
+            {
+                pos: new Vector(1.5, 2.5, -1.5),
+                color: new Color(0.07, 0.49, 0.071)
+            }, 
+            {
+                pos: new Vector(0, 3.5, 0),
+                color: new Color(0.21, 0.21, 0.35)
+            }
+        ],
+        camera: new Camera(new Vector(3, 2, 4), new Vector(-1, 0.5, 0))
+    };
+}
+</pre>
+
+<pre class="prettyprint">
+{"white":{"r":1,"g":1,"b":1},"grey":{"r":0.5,"g":0.5,"b":0.5},"black":{"r":0,"g":0,"b":0}}
+</pre>
+
+</div>
+
+<script>
+
+log = (typeof console == "object") ? console.log.bind(console) : function() { }
+
+var tangle_ex = new Tangle (document.getElementById("calorieCalculator"), {
+    initialize: function () {
+        this.cookies = 3;
+        this.caloriesPerCookie = 50;
+        this.dailyCalories = 2100;
+    },
+    update: function () {
+        this.calories = this.cookies * this.caloriesPerCookie;
+        this.dailyPercent = 100 * this.calories / this.dailyCalories;
+        log('update cookies', arguments, this);
+    }
+});
+
+
+// jQuery.noConflict();
+
+// var inp = jQuery('textarea[placeholder]')[0]
+
+var outp = document.body.querySelector('.compiler-output pre.prettyprint');
+// var outp = jQuery('.compiler-output pre.prettyprint').eq(0); 
+
+// newhtml = outp.html().replace(/([^"])\b(\.?\d+)\b/g, '$1<span class=TKAdjustableNumber>$2</span>')
+// outp.html(newhtml)
+
+var ohtml = outp.innerHTML;
+
+function resetHtml() { 
+    outp.innerHTML = ohtml;
+}
+
+/** remote quotes from str and surround with a quote and a space on the right */
+function quote(str) { return '"' + str.toString().replace(/"/g, "") + '" '; }
+
+/*
+ * step=1 ==> min=0, max=255
+ * step=0 ==> no min or max (uses default of 1 and 10)
+ * step<0.3 ==> step=0.125, min=0, max=1.0
+ */
+function adjustableDecimal(ohtml, step, o) {
+    if (!o) o = {};
+    if (typeof step === "object") { o = step; step = o.step }
+    if (null==o.re) { o.re = /([^"\>\d\.]|^)(\-?\b\d*\.*\d+)\b/g; }
+    if (null==o.klass) o.klass='TKAdjustableNumber';
+    if (!o.spanOps) o.spanOps = "";
+    if (null==step) step = o.step; // || 0.125;
+    if (step && 0 < step && step < 0.3 && ""==o.spanOps) { if (null==o.min) o.min = 0; if (null==o.max) o.max = 1.0; o.spanOps += ' data-step="'+step+'" ' }
+    else if (1 == step) { o.min=0; o.max=255; }
+    else if (step) { o.spanOps += ' data-step="'+step+'" ' }
+    if (null != o.min) o.spanOps += ' data-min=' + quote(o.min) ;
+    if (null != o.max) o.spanOps += ' data-max=' + quote(o.max) ;
+    var span = '<span class=' + quote(o.klass) + o.spanOps;
+    return ohtml.replace(o.re, '$1' + span +'>$2</span>')
+}
+
+// want multiple calls not to modify the text:
+// var dothtml = adjustableDecimal(ohtml);
+// adjustableDecimal(dothtml) === dothtml && dothtml !== ohtml
+// adjustableDecimal("5") !== "5"
+
+
+
+// tangle = new Tangle(outp[0], model)
+
+function loadScripts() {
+    jQuery.getScript('http://worrydream.com/Tangle/Tangle.js', function() { console.log("loaded", arguments); })
+
+    jQuery(document.body).append('<link rel="stylesheet" href="http://worrydream.com/Tangle/TangleKit/TangleKit.css" type="text/css">')
+    function scr(item) { $(document.body).append(item); }
+    scr('<script type="text/javascript" src="TangleKit/mootools.js"></sc'+'ript>')
+    scr('<script type="text/javascript" src="TangleKit/sprintf.js"></scr'+'ipt>')
+    scr('<script type="text/javascript" src="TangleKit/BVTouchable.js"></sc'+'ript>')
+    scr('<script type="text/javascript" src="TangleKit/TangleKit.js"></scr'+'ipt>')
+    if (typeof Slick === "undefined") Slick = {find:function(doc,b) { log(arguments); return doc[b]; }}
+}
+
+function getList(selector) {
+    // return jQuery(selector).toArray();
+    return Array.prototype.slice.call(document.body.querySelectorAll(selector));
+}
+
+function init_vars() {
+    var list = getList('.TKAdjustableNumber');
+    
+    list.map(function(it, n) { return it.setAttribute('data-var', 'number'+n) } )
+
+    // list.map(function(it, n) { return it.getAttribute('data-var') } )
+    // ["number0", "number1", "number2", "number3", "number4", "number5", "number6", "number7", "number8", "number9", "number10", "number11"]
+}
+
+function init() {
+    var list = getList('.TKAdjustableNumber');
+    var that = this;
+    // model['number'+n] = ...
+    list.forEach(function(it, n) { if (!model['number'+n]) that['number'+n] = it.lastChild.textContent - 0; it.lastChild.textContent = ''; } )
+    // list.map(function(it, n) { return it.lastChild.textContent = ' '  } )
+    log('init', arguments, this);
+}
+
+function hideExtra(list) {
+  // var list = getList('.TKAdjustableNumber');
+  list.map(function(node) { if (node.firstChild && node.firstChild.nodeName.toUpperCase() === "SPAN" && node.firstChild.textContent && node.lastChild && node.lastChild.nodeName=="#text" && node.lastChild.textContent) node.lastChild.textContent=''; });
+}
+
+var model = {
+    initialize: init, // function () { log('init') },
+    update: function () { if (this.hide) hideExtra(getList('.TKAdjustableNumber')); if (this.verbose) log('update', arguments, this); if (this.updateUI) updateUI(); }
+};
+
+// htmlvars = outp.html()
+// outp.html(htmlvars)
+
+function start(step,options) {
+    var dothtml = adjustableDecimal(ohtml,step,options);
+    outp.innerHTML = dothtml;
+    init_vars();
+    var tangle = new Tangle(outp, model)
+    return tangle;
+}
+restart = function() { return start(0.25,{min:-5,max:5}); }
+var tangle = restart();
+
+if (typeof js_beautify === "function" && typeof pp === "undefined") function pp(it) { return js_beautify(JSON.stringify(it)); }
+
+// TODO: Find way to extract numbers from TKAdjustableNumbers automatically w/out double displaying.
+
+</script>
+<script type="text/javascript" src="raytracer.js" />
+
+</body></html>
