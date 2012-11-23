@@ -142,7 +142,7 @@ var Surfaces;
     };
     Surfaces.checkerboard = {
         diffuse: function (pos) {
-            if((Math.floor(pos.z) + Math.floor(pos.x)) % 2 !== 0) {
+            if((Math.floor(pos.z) + Math.floor(pos.x)) % 2 ) {
                 return Color.white;
             } else {
                 return Color.black;
@@ -152,7 +152,7 @@ var Surfaces;
             return Color.white;
         },
         reflect: function (pos) {
-            if((Math.floor(pos.z) + Math.floor(pos.x)) % 2 !== 0) {
+            if((Math.floor(pos.z) + Math.floor(pos.x)) % 2 ) {
                 return 0.1;
             } else {
                 return 0.7;
@@ -233,20 +233,21 @@ var RayTracer = (function () {
         return scene.lights.reduce(addLight, Color.defaultColor);
     };
     RayTracer.prototype.render = function (scene, ctx, screenWidth, screenHeight) {
-        var getPoint = function (x, y, camera) {
-            var recenterX = (x - (screenWidth / 2)) / 2 / screenWidth;            
-            var recenterY = -(y - (screenHeight / 2)) / 2 / screenHeight;
+        var getPoint = function (recenterX, recenterY, camera) {
             return Vector.norm(Vector.plus(camera.forward, Vector.plus(Vector.times(recenterX, camera.right), Vector.times(recenterY, camera.up))));
         };
-        for(var y = 0; y < screenHeight; y++) {
+        for(var prevc, y = 0; y < screenHeight; y++) {
+            var recenterY = -(y - (screenHeight / 2)) / 2 / screenHeight;
             for(var x = 0; x < screenWidth; x++) {
+                var recenterX = (x - (screenWidth / 2)) / 2 / screenWidth;            
                 var color = this.traceRay({
                     start: scene.camera.pos,
-                    dir: getPoint(x, y, scene.camera)
+                    dir: getPoint(recenterX, recenterY, scene.camera)
                 }, scene, 0);
                 var c = Color.toDrawingColor(color);
-                ctx.fillStyle = "rgb(" + (c.r) + ", " + (c.g) + ", " + (c.b) + ")";
-                ctx.fillRect(x, y, x + 1, y + 1);
+                c = "rgb(" + (c.r) + ", " + (c.g) + ", " + (c.b) + ")";
+                if (prevc != c) ctx.fillStyle = prevc = c; 
+                ctx.fillRect(x, y, 1, 1);
             }
         }
     }
@@ -269,7 +270,7 @@ var RayTracer = (function () {
                 }, scene, 0);
                 var c = Color.toDrawingColor(color);
                 ctx.fillStyle = "rgb(" + String(c.r) + ", " + String(c.g) + ", " + String(c.b) + ")";
-                ctx.fillRect(x, y, x + 1, y + 1);
+                ctx.fillRect(x, y, x+1, y+1);
             }
         }
     };
@@ -353,3 +354,5 @@ scene.next = function (i,last) { var s = this; s.camera = new Camera(new Vector(
 readScene = function() { var text, oshow = scene.show || oscene.show; try { text = tangle.element.textContent.replace(/(\d)drag/g, "$1"); eval(text); log(text.length); scene = defaultScene(); scene.show = oshow; reshow(); } catch(e) { log(text); log(e) } }
 
 function updateUI(ms) { delayThrottle(readScene, ms || 1200) }
+
+if (typeof model !== "undefined") model.updateUI = updateUI;
